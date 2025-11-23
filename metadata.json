@@ -1,0 +1,5 @@
+{
+  "name": "IronAI Fitness",
+  "description": "An AI-powered personal trainer that generates personalized workouts, tracks your progress with progressive overload, and gamifies your fitness journey.",
+  "requestFramePermissions": []
+}
