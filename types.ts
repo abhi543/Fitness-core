@@ -66,7 +66,9 @@ export interface UserBadge {
 }
 
 export interface UserProfile {
+  email: string; // User identifier
   name: string;
+  photoUrl?: string;
   level: Difficulty;
   availableEquipment: Equipment[];
   streak: number;

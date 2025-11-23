@@ -1,12 +1,18 @@
 import { UserProfile, WorkoutLogEntry, UserBadge, Difficulty, Equipment } from '../types';
 
-const KEYS = {
+const BASE_KEYS = {
   PROFILE: 'ironai_profile',
   HISTORY: 'ironai_history',
-  BADGES: 'ironai_badges'
 };
 
+// Helper to get keys based on current user
+const getKeys = (email: string = 'guest') => ({
+  PROFILE: `${BASE_KEYS.PROFILE}_${email}`,
+  HISTORY: `${BASE_KEYS.HISTORY}_${email}`,
+});
+
 const DEFAULT_PROFILE: UserProfile = {
+  email: 'guest',
   name: 'Athlete',
   level: Difficulty.BEGINNER,
   availableEquipment: [Equipment.BODYWEIGHT],
@@ -17,21 +23,28 @@ const DEFAULT_PROFILE: UserProfile = {
 };
 
 export const saveProfile = (profile: UserProfile) => {
-  localStorage.setItem(KEYS.PROFILE, JSON.stringify(profile));
+  const keys = getKeys(profile.email);
+  localStorage.setItem(keys.PROFILE, JSON.stringify(profile));
 };
 
-export const getProfile = (): UserProfile => {
-  const data = localStorage.getItem(KEYS.PROFILE);
-  return data ? JSON.parse(data) : DEFAULT_PROFILE;
+export const getProfile = (email: string = 'guest'): UserProfile => {
+  const keys = getKeys(email);
+  const data = localStorage.getItem(keys.PROFILE);
+  if (data) {
+    return JSON.parse(data);
+  }
+  // If no profile exists for this user, return default with their email/name if provided
+  return { ...DEFAULT_PROFILE, email };
 };
 
-export const saveHistory = (entry: WorkoutLogEntry) => {
-  const history = getHistory();
+export const saveHistory = (entry: WorkoutLogEntry, email: string = 'guest') => {
+  const history = getHistory(email);
   history.push(entry);
-  localStorage.setItem(KEYS.HISTORY, JSON.stringify(history));
+  const keys = getKeys(email);
+  localStorage.setItem(keys.HISTORY, JSON.stringify(history));
   
   // Update Streak logic
-  const profile = getProfile();
+  const profile = getProfile(email);
   const today = new Date().toISOString().split('T')[0];
   
   if (profile.lastWorkoutDate) {
@@ -57,8 +70,9 @@ export const saveHistory = (entry: WorkoutLogEntry) => {
   saveProfile(profile);
 };
 
-export const getHistory = (): WorkoutLogEntry[] => {
-  const data = localStorage.getItem(KEYS.HISTORY);
+export const getHistory = (email: string = 'guest'): WorkoutLogEntry[] => {
+  const keys = getKeys(email);
+  const data = localStorage.getItem(keys.HISTORY);
   return data ? JSON.parse(data) : [];
 };
 
@@ -103,8 +117,8 @@ export const ALL_BADGES: UserBadge[] = [
   }
 ];
 
-export const getUnlockedBadges = (): string[] => {
+export const getUnlockedBadges = (email: string = 'guest'): string[] => {
     // This returns IDs of unlocked badges
-    const history = getHistory();
+    const history = getHistory(email);
     return ALL_BADGES.filter(b => b.condition(history)).map(b => b.id);
 };

@@ -12,7 +12,9 @@ import {
   Settings,
   Plus,
   RefreshCw,
-  Clock
+  Clock,
+  Download,
+  LogOut
 } from 'lucide-react';
 
 import { Button } from './components/Button';
@@ -21,16 +23,90 @@ import { generateWorkoutPlan, getAIProgressTips } from './services/geminiService
 import { saveHistory, getHistory, getProfile, saveProfile, getUnlockedBadges, ALL_BADGES } from './services/storageService';
 import { Equipment, MuscleGroup, Difficulty, WorkoutPlan, UserProfile, WorkoutLogEntry } from './types';
 
-// --- Components defined within App.tsx to keep single file structure relative simple for the response ---
+// Helper to decode JWT without external lib
+function parseJwt (token: string) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+}
+
+// 0. LOGIN COMPONENT
+const LoginScreen: React.FC<{ onGuestLogin: () => void, onGoogleLogin: (user: any) => void }> = ({ onGuestLogin, onGoogleLogin }) => {
+  useEffect(() => {
+    // Initialize Google Sign-In
+    if ((window as any).google) {
+      (window as any).google.accounts.id.initialize({
+        client_id: "YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com", // Placeholder: User needs to replace this
+        callback: (response: any) => {
+          const userObject = parseJwt(response.credential);
+          onGoogleLogin(userObject);
+        }
+      });
+      (window as any).google.accounts.id.renderButton(
+        document.getElementById("googleSignInDiv"),
+        { theme: "outline", size: "large", width: "250" }
+      );
+    }
+  }, [onGoogleLogin]);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-white relative overflow-hidden">
+       {/* Background Decoration */}
+       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[100px]"></div>
+       </div>
+
+       <div className="z-10 flex flex-col items-center space-y-8 max-w-sm w-full">
+         <div className="flex flex-col items-center">
+            <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 p-4 rounded-2xl shadow-xl mb-4">
+               <Dumbbell size={48} className="text-white" />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">IronAI Fitness</h1>
+            <p className="text-slate-400 text-center mt-2">Your personalized AI strength coach.</p>
+         </div>
+
+         <div className="w-full space-y-4">
+            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col items-center">
+               <div id="googleSignInDiv" className="min-h-[40px]"></div>
+               <p className="text-xs text-slate-500 mt-4 text-center">
+                 Sign in to sync your workouts and stats across devices.
+               </p>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-slate-900 text-slate-500">Or continue as guest</span>
+              </div>
+            </div>
+
+            <Button onClick={onGuestLogin} variant="secondary" className="w-full">
+              Enter as Guest
+            </Button>
+         </div>
+       </div>
+    </div>
+  );
+};
 
 // 1. DASHBOARD COMPONENT
 const Dashboard: React.FC<{ 
   profile: UserProfile; 
   onStartWorkout: () => void; 
   history: WorkoutLogEntry[];
-}> = ({ profile, onStartWorkout, history }) => {
+  installPrompt: any;
+  onInstall: () => void;
+  onLogout: () => void;
+}> = ({ profile, onStartWorkout, history, installPrompt, onInstall, onLogout }) => {
   const [tip, setTip] = useState<string>("Loading personalized tip...");
-  const unlockedBadges = getUnlockedBadges();
+  const unlockedBadges = getUnlockedBadges(profile.email);
 
   useEffect(() => {
     getAIProgressTips(history).then(setTip);
@@ -40,14 +116,42 @@ const Dashboard: React.FC<{
     <div className="space-y-6 pb-20 p-4">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Hi, {profile.name} 👋</h1>
-          <p className="text-slate-400 text-sm">Level {profile.levelNumber} • {profile.xp} XP</p>
+        <div className="flex items-center space-x-3">
+          {profile.photoUrl ? (
+            <img src={profile.photoUrl} alt="User" className="w-10 h-10 rounded-full border-2 border-indigo-500" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center border-2 border-indigo-500 text-indigo-300">
+              <User size={20} />
+            </div>
+          )}
+          <div>
+            <h1 className="text-xl font-bold text-white leading-tight">{profile.name}</h1>
+            <p className="text-slate-400 text-xs">Level {profile.levelNumber}</p>
+          </div>
         </div>
-        <div className="flex items-center space-x-1 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-          <Flame size={18} className="text-orange-500 fill-orange-500" />
-          <span className="font-bold text-white">{profile.streak}</span>
+        <div className="flex items-center space-x-2">
+          {installPrompt && (
+            <button 
+              onClick={onInstall}
+              className="flex items-center space-x-1 bg-indigo-600 px-3 py-1 rounded-full border border-indigo-500 text-white shadow-lg animate-pulse hover:bg-indigo-500 transition-colors"
+            >
+              <Download size={16} />
+              <span className="text-xs font-bold">Install</span>
+            </button>
+          )}
+          <button onClick={onLogout} className="p-2 text-slate-400 hover:text-white">
+            <LogOut size={18} />
+          </button>
         </div>
+      </div>
+
+      {/* Streak Badge */}
+      <div className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between border border-slate-700">
+         <div className="flex items-center space-x-2 px-2">
+            <Flame size={18} className="text-orange-500 fill-orange-500" />
+            <span className="text-sm text-slate-300">Daily Streak</span>
+         </div>
+         <span className="font-bold text-white bg-slate-700 px-3 py-0.5 rounded text-sm">{profile.streak} Days</span>
       </div>
 
       {/* Hero CTA */}
@@ -225,9 +329,24 @@ const ActiveWorkout: React.FC<{
   onCancel: () => void;
 }> = ({ plan, onFinish, onCancel }) => {
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
-  const [exerciseData, setExerciseData] = useState<{ [key: number]: { weight: number, reps: number } }>({});
+  const [exerciseData, setExerciseData] = useState<{ [key: number]: { weight: number, reps: number, sets: number } }>({});
   const [timer, setTimer] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+
+  // Initialize defaults
+  useEffect(() => {
+    const defaults: any = {};
+    plan.exercises.forEach((ex, idx) => {
+        // Simple heuristic to extract a number from "8-12" or "10"
+        const defaultReps = parseInt(ex.reps.split('-')[0]) || 10; 
+        defaults[idx] = {
+            weight: 0,
+            reps: defaultReps,
+            sets: ex.sets
+        }
+    });
+    setExerciseData(defaults);
+  }, [plan]);
 
   useEffect(() => {
     let interval: any;
@@ -244,7 +363,7 @@ const ActiveWorkout: React.FC<{
     setCompletedExercises(newSet);
   };
 
-  const handleInput = (idx: number, field: 'weight' | 'reps', value: string) => {
+  const handleInput = (idx: number, field: 'weight' | 'reps' | 'sets', value: string) => {
     setExerciseData(prev => ({
       ...prev,
       [idx]: {
@@ -259,10 +378,11 @@ const ActiveWorkout: React.FC<{
       date: new Date().toISOString(),
       workoutId: plan.id,
       durationMinutes: Math.ceil(timer / 60),
-      totalVolume: Object.values(exerciseData).reduce((acc: number, curr: { weight: number, reps: number }) => acc + ((curr.weight || 0) * (curr.reps || 0)), 0),
+      // Fix: Explicitly type reduce generic to number
+      totalVolume: Object.values(exerciseData).reduce<number>((acc, curr: any) => acc + ((curr.weight || 0) * (curr.reps || 0) * (curr.sets || 1)), 0),
       exercisesCompleted: plan.exercises.map((ex, idx) => ({
         name: ex.name,
-        setsCompleted: completedExercises.has(idx) ? ex.sets : 0, // Simplified: binary completion
+        setsCompleted: completedExercises.has(idx) ? (exerciseData[idx]?.sets || ex.sets) : 0, 
         weightUsed: exerciseData[idx]?.weight || 0,
         repsCompleted: exerciseData[idx]?.reps || 0
       })).filter(ex => ex.setsCompleted > 0)
@@ -299,7 +419,6 @@ const ActiveWorkout: React.FC<{
                 <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">{ex.targetMuscle}</span>
               </div>
               
-              {/* Media Placeholder */}
               <div className="w-full h-32 bg-slate-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden group">
                  <img 
                     src={`https://picsum.photos/400/200?random=${idx}`} 
@@ -314,29 +433,43 @@ const ActiveWorkout: React.FC<{
               {/* Set Logger */}
               <div className="bg-slate-900/50 rounded-lg p-3">
                 <div className="flex justify-between text-xs text-slate-500 mb-2 uppercase font-bold tracking-wider">
-                  <span>Target</span>
-                  <span>Log</span>
+                  <span>Target: {ex.sets} x {ex.reps}</span>
+                  <span>Log Details</span>
                 </div>
-                <div className="flex justify-between items-center mb-3">
-                    <div className="text-sm text-slate-300">
-                        {ex.sets} sets x {ex.reps} reps
-                        <div className="text-xs text-indigo-400">{ex.weight}</div>
-                    </div>
-                    <div className="flex gap-2">
+                
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div>
+                        <label className="text-[10px] text-slate-500 mb-1 block">SETS</label>
                         <input 
                             type="number" 
-                            placeholder="kg/lbs" 
-                            className="w-16 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm focus:border-indigo-500 outline-none"
+                            value={exerciseData[idx]?.sets || ''}
+                            placeholder={ex.sets.toString()}
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-2 text-white text-center font-mono focus:border-indigo-500 outline-none"
+                            onChange={(e) => handleInput(idx, 'sets', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] text-slate-500 mb-1 block">LBS/KG</label>
+                        <input 
+                            type="number" 
+                            placeholder="Weight" 
+                            value={exerciseData[idx]?.weight || ''}
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-2 text-white text-center font-mono focus:border-indigo-500 outline-none"
                             onChange={(e) => handleInput(idx, 'weight', e.target.value)}
                         />
+                    </div>
+                    <div>
+                        <label className="text-[10px] text-slate-500 mb-1 block">REPS</label>
                         <input 
                             type="number" 
                             placeholder="Reps" 
-                            className="w-16 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm focus:border-indigo-500 outline-none"
+                            value={exerciseData[idx]?.reps || ''}
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-2 text-white text-center font-mono focus:border-indigo-500 outline-none"
                             onChange={(e) => handleInput(idx, 'reps', e.target.value)}
                         />
                     </div>
                 </div>
+
                 <button 
                   onClick={() => toggleComplete(idx)}
                   className={`w-full py-2 rounded-lg font-bold flex items-center justify-center transition-colors ${completedExercises.has(idx) ? 'bg-green-600/20 text-green-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
@@ -366,16 +499,61 @@ const ActiveWorkout: React.FC<{
 
 // 4. MAIN APP CONTAINER
 export default function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'generator' | 'active' | 'stats'>('dashboard');
-  const [profile, setProfile] = useState<UserProfile>(getProfile());
-  const [history, setHistory] = useState<WorkoutLogEntry[]>(getHistory());
+  const [currentView, setCurrentView] = useState<'login' | 'dashboard' | 'generator' | 'active' | 'stats'>('login');
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [history, setHistory] = useState<WorkoutLogEntry[]>([]);
   const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
 
-  // Load data on mount
+  // Install Prompt listener
   useEffect(() => {
-    setProfile(getProfile());
-    setHistory(getHistory());
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  // Hydrate data when user changes
+  useEffect(() => {
+    if (currentUserEmail) {
+        const p = getProfile(currentUserEmail);
+        setProfile(p);
+        setHistory(getHistory(currentUserEmail));
+        setCurrentView('dashboard');
+    } else {
+        setProfile(null);
+        setHistory([]);
+    }
+  }, [currentUserEmail]);
+
+  // Actions
+  const handleGuestLogin = () => {
+    setCurrentUserEmail('guest');
+  };
+
+  const handleGoogleLogin = (userObject: any) => {
+    const email = userObject.email;
+    const existingProfile = getProfile(email);
+    
+    // Update or Create profile with Google Info
+    const newProfile = {
+      ...existingProfile,
+      email: email,
+      name: userObject.name || existingProfile.name,
+      photoUrl: userObject.picture
+    };
+    
+    saveProfile(newProfile); // This ensures the user exists in our storage
+    setCurrentUserEmail(email);
+  };
+
+  const handleLogout = () => {
+    setCurrentUserEmail(null);
+    setCurrentView('login');
+  }
 
   const startWorkoutFlow = () => setCurrentView('generator');
 
@@ -385,11 +563,20 @@ export default function App() {
   };
 
   const handleFinishWorkout = (log: WorkoutLogEntry) => {
-    saveHistory(log);
-    setHistory(getHistory());
-    setProfile(getProfile());
+    if (!currentUserEmail) return;
+    saveHistory(log, currentUserEmail);
+    setHistory(getHistory(currentUserEmail));
+    setProfile(getProfile(currentUserEmail));
     setActivePlan(null);
     setCurrentView('dashboard');
+  };
+
+  const handleInstallClick = () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.then((choiceResult: any) => {
+      setInstallPrompt(null);
+    });
   };
 
   const Navigation = () => (
@@ -410,18 +597,30 @@ export default function App() {
     </nav>
   );
 
+  if (currentView === 'login') {
+      return <LoginScreen onGuestLogin={handleGuestLogin} onGoogleLogin={handleGoogleLogin} />;
+  }
+
   if (currentView === 'active' && activePlan) {
     return <ActiveWorkout plan={activePlan} onFinish={handleFinishWorkout} onCancel={() => setCurrentView('dashboard')} />;
   }
 
+  if (!profile) return null; // Should not happen if view != login
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30">
       
-      {/* Content Area */}
       <main className="max-w-md mx-auto min-h-screen bg-slate-950 relative shadow-2xl overflow-hidden">
         
         {currentView === 'dashboard' && (
-          <Dashboard profile={profile} onStartWorkout={startWorkoutFlow} history={history} />
+          <Dashboard 
+            profile={profile} 
+            onStartWorkout={startWorkoutFlow} 
+            history={history} 
+            installPrompt={installPrompt}
+            onInstall={handleInstallClick}
+            onLogout={handleLogout}
+          />
         )}
 
         {currentView === 'generator' && (
@@ -441,7 +640,7 @@ export default function App() {
                <h3 className="text-sm font-bold text-slate-400 uppercase mb-4">Achievements</h3>
                <div className="grid grid-cols-4 gap-2">
                  {ALL_BADGES.map(b => {
-                    const unlocked = getUnlockedBadges().includes(b.id);
+                    const unlocked = getUnlockedBadges(profile.email).includes(b.id);
                     return (
                         <div key={b.id} className={`aspect-square rounded-lg flex items-center justify-center text-2xl border ${unlocked ? 'bg-indigo-900/30 border-indigo-500/50' : 'bg-slate-900 border-slate-800 grayscale opacity-30'}`} title={b.description}>
                             {b.icon}
@@ -471,7 +670,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Mobile Nav */}
         <Navigation />
 
       </main>

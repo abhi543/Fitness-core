@@ -1,0 +1,21 @@
+{
+  "name": "IronAI Fitness",
+  "short_name": "IronAI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluency/192/dumbbell.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/fluency/512/dumbbell.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
