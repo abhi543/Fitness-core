@@ -1,20 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# IronAI Fitness - Installation Guide
 
-# Run and deploy your AI Studio app
+This is a **Progressive Web App (PWA)**. It behaves like a native Windows or Android app but runs on web technologies.
 
-This contains everything you need to run your app locally.
+## How to Run (Local Development)
+Because this app uses ES Modules and Service Workers, you cannot simply double-click `index.html`. You must serve it via a local web server.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1_ZRoaK9Em45Ynnkf7UeXBo-Pn_hDya6j
+### Option 1: Using VS Code (Easiest)
+1. Install the "Live Server" extension in VS Code.
+2. Right-click `index.html` and select "Open with Live Server".
 
-## Run Locally
+### Option 2: Using Node.js
+1. Open your terminal in this folder.
+2. Run `npx serve .`
+3. Open `http://localhost:3000` in your browser.
 
-**Prerequisites:**  Node.js
+## How to Install on Windows
+1. Open the app in **Google Chrome** or **Microsoft Edge**.
+2. Look at the address bar (URL bar) at the top.
+3. Click the **Install Icon** (Computer screen with a down arrow, or a Plus sign).
+4. Click **Install**.
+5. The app will now launch in its own window and appear in your Start Menu.
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## How to Install on Android
+1. Open the app in **Chrome**.
+2. Tap the menu (three dots).
+3. Tap **"Add to Home Screen"** or **"Install App"**.

@@ -23,36 +23,12 @@ import { generateWorkoutPlan, getAIProgressTips } from './services/geminiService
 import { saveHistory, getHistory, getProfile, saveProfile, getUnlockedBadges, ALL_BADGES } from './services/storageService';
 import { Equipment, MuscleGroup, Difficulty, WorkoutPlan, UserProfile, WorkoutLogEntry } from './types';
 
-// Helper to decode JWT without external lib
-function parseJwt (token: string) {
-    var base64Url = token.split('.')[1];
-    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-
-    return JSON.parse(jsonPayload);
-}
-
-// 0. LOGIN COMPONENT
-const LoginScreen: React.FC<{ onGuestLogin: () => void, onGoogleLogin: (user: any) => void }> = ({ onGuestLogin, onGoogleLogin }) => {
-  useEffect(() => {
-    // Initialize Google Sign-In
-    if ((window as any).google) {
-      (window as any).google.accounts.id.initialize({
-        client_id: "YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com", // Placeholder: User needs to replace this
-        callback: (response: any) => {
-          const userObject = parseJwt(response.credential);
-          onGoogleLogin(userObject);
-        }
-      });
-      (window as any).google.accounts.id.renderButton(
-        document.getElementById("googleSignInDiv"),
-        { theme: "outline", size: "large", width: "250" }
-      );
-    }
-  }, [onGoogleLogin]);
-
+// 0. LOGIN / WELCOME SCREEN
+const LoginScreen: React.FC<{ 
+  onStart: () => void; 
+  installPrompt: any;
+  onInstall: () => void;
+}> = ({ onStart, installPrompt, onInstall }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-white relative overflow-hidden">
        {/* Background Decoration */}
@@ -71,25 +47,28 @@ const LoginScreen: React.FC<{ onGuestLogin: () => void, onGoogleLogin: (user: an
          </div>
 
          <div className="w-full space-y-4">
-            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col items-center">
-               <div id="googleSignInDiv" className="min-h-[40px]"></div>
-               <p className="text-xs text-slate-500 mt-4 text-center">
-                 Sign in to sync your workouts and stats across devices.
-               </p>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-700"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-900 text-slate-500">Or continue as guest</span>
-              </div>
-            </div>
-
-            <Button onClick={onGuestLogin} variant="secondary" className="w-full">
-              Enter as Guest
+            <Button onClick={onStart} className="w-full h-12 text-lg font-bold shadow-lg shadow-indigo-900/20">
+              Start Training
             </Button>
+
+            {/* Install Button Logic */}
+            {installPrompt && (
+              <div className="pt-4 flex justify-center w-full">
+                <button 
+                  onClick={onInstall}
+                  className="flex items-center space-x-2 text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-900/30 px-4 py-2 rounded-lg border border-indigo-500/30"
+                >
+                  <Download size={16} />
+                  <span className="text-sm font-medium">Install App on Device</span>
+                </button>
+              </div>
+            )}
+            
+            {!installPrompt && (
+              <p className="text-[10px] text-slate-600 text-center mt-4">
+                To install: Click the Install icon in your browser address bar.
+              </p>
+            )}
          </div>
        </div>
     </div>
@@ -378,7 +357,6 @@ const ActiveWorkout: React.FC<{
       date: new Date().toISOString(),
       workoutId: plan.id,
       durationMinutes: Math.ceil(timer / 60),
-      // Fix: Explicitly type reduce generic to number
       totalVolume: Object.values(exerciseData).reduce<number>((acc, curr: any) => acc + ((curr.weight || 0) * (curr.reps || 0) * (curr.sets || 1)), 0),
       exercisesCompleted: plan.exercises.map((ex, idx) => ({
         name: ex.name,
@@ -534,22 +512,6 @@ export default function App() {
     setCurrentUserEmail('guest');
   };
 
-  const handleGoogleLogin = (userObject: any) => {
-    const email = userObject.email;
-    const existingProfile = getProfile(email);
-    
-    // Update or Create profile with Google Info
-    const newProfile = {
-      ...existingProfile,
-      email: email,
-      name: userObject.name || existingProfile.name,
-      photoUrl: userObject.picture
-    };
-    
-    saveProfile(newProfile); // This ensures the user exists in our storage
-    setCurrentUserEmail(email);
-  };
-
   const handleLogout = () => {
     setCurrentUserEmail(null);
     setCurrentView('login');
@@ -598,7 +560,13 @@ export default function App() {
   );
 
   if (currentView === 'login') {
-      return <LoginScreen onGuestLogin={handleGuestLogin} onGoogleLogin={handleGoogleLogin} />;
+      return (
+        <LoginScreen 
+          onStart={handleGuestLogin} 
+          installPrompt={installPrompt}
+          onInstall={handleInstallClick}
+        />
+      );
   }
 
   if (currentView === 'active' && activePlan) {
