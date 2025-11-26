@@ -14,7 +14,7 @@ export const StatsChart: React.FC<StatsChartProps> = ({ history }) => {
   })).slice(-7); // Last 7 workouts
 
   if (data.length === 0) {
-    return <div className="text-slate-500 text-center py-10">No workout data yet</div>;
+    return <div className="text-[var(--text-muted)] text-center py-10">No workout data yet</div>;
   }
 
   return (
@@ -31,18 +31,18 @@ export const StatsChart: React.FC<StatsChartProps> = ({ history }) => {
         >
           <defs>
             <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#818cf8" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+              <stop offset="5%" stopColor="var(--col-primary-light)" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="var(--col-primary-light)" stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
-          <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+          <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={12} tickLine={false} />
+          <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} />
           <Tooltip 
-            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
-            itemStyle={{ color: '#818cf8' }}
+            contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
+            itemStyle={{ color: 'var(--col-primary-light)' }}
           />
-          <Area type="monotone" dataKey="volume" stroke="#818cf8" fillOpacity={1} fill="url(#colorVolume)" />
+          <Area type="monotone" dataKey="volume" stroke="var(--col-primary-light)" fillOpacity={1} fill="url(#colorVolume)" />
         </AreaChart>
       </ResponsiveContainer>
     </div>

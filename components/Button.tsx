@@ -14,12 +14,12 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props 
 }) => {
-  const baseStyles = "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:pointer-events-none";
+  const baseStyles = "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--bg-main)] disabled:opacity-50 disabled:pointer-events-none";
   
   const variants = {
-    primary: "bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500",
-    secondary: "bg-slate-700 text-slate-100 hover:bg-slate-600 focus:ring-slate-500",
-    outline: "border border-slate-600 text-slate-300 hover:bg-slate-800 focus:ring-slate-500",
+    primary: "bg-[var(--col-primary)] text-white hover:bg-[var(--col-primary-hover)] focus:ring-[var(--col-primary)]",
+    secondary: "bg-[var(--bg-element)] text-[var(--text-main)] hover:bg-[var(--bg-element)]/80 focus:ring-[var(--border-color)]",
+    outline: "border border-[var(--border-color)] text-[var(--text-muted)] hover:bg-[var(--bg-card)] focus:ring-[var(--border-color)]",
     danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
   };
 

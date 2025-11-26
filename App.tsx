@@ -4,24 +4,44 @@ import {
   LayoutDashboard, 
   BarChart2, 
   User, 
-  Play, 
   Trophy, 
   CheckCircle, 
   Flame,
-  ChevronRight,
-  Settings,
   Plus,
-  RefreshCw,
   Clock,
   Download,
-  LogOut
+  LogOut,
+  Copy,
+  Zap,
+  Dice5
 } from 'lucide-react';
 
 import { Button } from './components/Button';
 import { StatsChart } from './components/StatsChart';
 import { generateWorkoutPlan, getAIProgressTips } from './services/geminiService';
-import { saveHistory, getHistory, getProfile, saveProfile, getUnlockedBadges, ALL_BADGES } from './services/storageService';
+import { saveHistory, getHistory, getProfile, getUnlockedBadges, ALL_BADGES } from './services/storageService';
 import { Equipment, MuscleGroup, Difficulty, WorkoutPlan, UserProfile, WorkoutLogEntry } from './types';
+
+// Theme Generator Helper
+const generateRandomTheme = () => {
+  const hue = Math.floor(Math.random() * 360);
+  const primaryHue = (hue + 180) % 360; // Complementary for high contrast, or use (hue + 30) for analogous
+
+  return {
+    '--bg-main': `hsl(${hue}, 40%, 6%)`,
+    '--bg-card': `hsl(${hue}, 30%, 12%)`,
+    '--bg-element': `hsl(${hue}, 20%, 20%)`,
+    '--border-color': `hsl(${hue}, 20%, 30%)`,
+    
+    // Ensure primary color pops
+    '--col-primary': `hsl(${primaryHue}, 80%, 60%)`,
+    '--col-primary-hover': `hsl(${primaryHue}, 80%, 50%)`,
+    '--col-primary-light': `hsl(${primaryHue}, 90%, 75%)`,
+    
+    '--text-main': `hsl(${hue}, 10%, 98%)`,
+    '--text-muted': `hsl(${hue}, 15%, 65%)`,
+  };
+};
 
 // 0. LOGIN / WELCOME SCREEN
 const LoginScreen: React.FC<{ 
@@ -30,24 +50,24 @@ const LoginScreen: React.FC<{
   onInstall: () => void;
 }> = ({ onStart, installPrompt, onInstall }) => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-white relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[var(--bg-main)] text-[var(--text-main)] relative overflow-hidden transition-colors duration-500">
        {/* Background Decoration */}
        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[100px]"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[100px]"></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[var(--col-primary)] opacity-20 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[var(--col-primary-light)] opacity-20 rounded-full blur-[100px]"></div>
        </div>
 
        <div className="z-10 flex flex-col items-center space-y-8 max-w-sm w-full">
          <div className="flex flex-col items-center">
-            <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 p-4 rounded-2xl shadow-xl mb-4">
+            <div className="bg-gradient-to-tr from-[var(--col-primary)] to-[var(--col-primary-light)] p-4 rounded-2xl shadow-xl mb-4">
                <Dumbbell size={48} className="text-white" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">IronAI Fitness</h1>
-            <p className="text-slate-400 text-center mt-2">Your personalized AI strength coach.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--text-main)]">IronAI Fitness</h1>
+            <p className="text-[var(--text-muted)] text-center mt-2">Your personalized AI strength coach.</p>
          </div>
 
          <div className="w-full space-y-4">
-            <Button onClick={onStart} className="w-full h-12 text-lg font-bold shadow-lg shadow-indigo-900/20">
+            <Button onClick={onStart} className="w-full h-12 text-lg font-bold shadow-lg shadow-[var(--bg-main)]/50">
               Start Training
             </Button>
 
@@ -56,7 +76,7 @@ const LoginScreen: React.FC<{
               <div className="pt-4 flex justify-center w-full">
                 <button 
                   onClick={onInstall}
-                  className="flex items-center space-x-2 text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-900/30 px-4 py-2 rounded-lg border border-indigo-500/30"
+                  className="flex items-center space-x-2 text-[var(--col-primary-light)] hover:text-[var(--col-primary)] transition-colors bg-[var(--bg-element)]/30 px-4 py-2 rounded-lg border border-[var(--border-color)]"
                 >
                   <Download size={16} />
                   <span className="text-sm font-medium">Install App on Device</span>
@@ -65,7 +85,7 @@ const LoginScreen: React.FC<{
             )}
             
             {!installPrompt && (
-              <p className="text-[10px] text-slate-600 text-center mt-4">
+              <p className="text-[10px] text-[var(--text-muted)] text-center mt-4">
                 To install: Click the Install icon in your browser address bar.
               </p>
             )}
@@ -97,63 +117,63 @@ const Dashboard: React.FC<{
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-3">
           {profile.photoUrl ? (
-            <img src={profile.photoUrl} alt="User" className="w-10 h-10 rounded-full border-2 border-indigo-500" />
+            <img src={profile.photoUrl} alt="User" className="w-10 h-10 rounded-full border-2 border-[var(--col-primary)]" />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center border-2 border-indigo-500 text-indigo-300">
+            <div className="w-10 h-10 rounded-full bg-[var(--bg-element)] flex items-center justify-center border-2 border-[var(--col-primary)] text-[var(--col-primary-light)]">
               <User size={20} />
             </div>
           )}
           <div>
-            <h1 className="text-xl font-bold text-white leading-tight">{profile.name}</h1>
-            <p className="text-slate-400 text-xs">Level {profile.levelNumber}</p>
+            <h1 className="text-xl font-bold text-[var(--text-main)] leading-tight">{profile.name}</h1>
+            <p className="text-[var(--text-muted)] text-xs">Level {profile.levelNumber}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           {installPrompt && (
             <button 
               onClick={onInstall}
-              className="flex items-center space-x-1 bg-indigo-600 px-3 py-1 rounded-full border border-indigo-500 text-white shadow-lg animate-pulse hover:bg-indigo-500 transition-colors"
+              className="flex items-center space-x-1 bg-[var(--col-primary)] px-3 py-1 rounded-full border border-[var(--col-primary-hover)] text-white shadow-lg animate-pulse hover:bg-[var(--col-primary-hover)] transition-colors"
             >
               <Download size={16} />
               <span className="text-xs font-bold">Install</span>
             </button>
           )}
-          <button onClick={onLogout} className="p-2 text-slate-400 hover:text-white">
+          <button onClick={onLogout} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)]">
             <LogOut size={18} />
           </button>
         </div>
       </div>
 
       {/* Streak Badge */}
-      <div className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between border border-slate-700">
+      <div className="bg-[var(--bg-card)] rounded-lg p-2 flex items-center justify-between border border-[var(--border-color)]">
          <div className="flex items-center space-x-2 px-2">
             <Flame size={18} className="text-orange-500 fill-orange-500" />
-            <span className="text-sm text-slate-300">Daily Streak</span>
+            <span className="text-sm text-[var(--text-muted)]">Daily Streak</span>
          </div>
-         <span className="font-bold text-white bg-slate-700 px-3 py-0.5 rounded text-sm">{profile.streak} Days</span>
+         <span className="font-bold text-[var(--text-main)] bg-[var(--bg-element)] px-3 py-0.5 rounded text-sm">{profile.streak} Days</span>
       </div>
 
       {/* Hero CTA */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 shadow-lg text-white relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[var(--col-primary)] to-[var(--col-primary-hover)] rounded-2xl p-6 shadow-lg text-white relative overflow-hidden">
         <div className="relative z-10">
-          <h2 className="text-xl font-bold mb-2">Ready to crush it?</h2>
-          <p className="text-indigo-100 mb-4 text-sm opacity-90">{tip}</p>
-          <Button onClick={onStartWorkout} variant="secondary" className="w-full sm:w-auto font-bold bg-white text-indigo-700 hover:bg-indigo-50">
-            <Play size={18} className="mr-2 fill-current" /> Generate Workout
+          <h2 className="text-xl font-bold mb-2">Feeling Lucky?</h2>
+          <p className="text-white/90 mb-4 text-sm opacity-90">{tip}</p>
+          <Button onClick={onStartWorkout} variant="secondary" className="w-full sm:w-auto font-bold bg-white text-[var(--col-primary)] hover:bg-white/90">
+            <Dice5 size={18} className="mr-2 fill-current" /> Daily Roulette
           </Button>
         </div>
-        <Dumbbell className="absolute -right-4 -bottom-4 text-indigo-500 opacity-30 w-32 h-32 rotate-[-15deg]" />
+        <Dumbbell className="absolute -right-4 -bottom-4 text-white opacity-20 w-32 h-32 rotate-[-15deg]" />
       </div>
 
       {/* Stats Quick View */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-          <div className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">Workouts</div>
-          <div className="text-2xl font-bold text-white">{history.length}</div>
+        <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)]">
+          <div className="text-[var(--text-muted)] text-xs uppercase font-bold tracking-wider mb-1">Workouts</div>
+          <div className="text-2xl font-bold text-[var(--text-main)]">{history.length}</div>
         </div>
-        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-          <div className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">Volume (lbs)</div>
-          <div className="text-2xl font-bold text-white">
+        <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)]">
+          <div className="text-[var(--text-muted)] text-xs uppercase font-bold tracking-wider mb-1">Volume (lbs)</div>
+          <div className="text-2xl font-bold text-[var(--text-main)]">
             {(history.reduce((acc, curr) => acc + curr.totalVolume, 0) / 1000).toFixed(1)}k
           </div>
         </div>
@@ -161,22 +181,22 @@ const Dashboard: React.FC<{
 
       {/* Recent Activity */}
       <div>
-        <h3 className="text-lg font-bold text-white mb-3 flex items-center">
-          <Clock size={18} className="mr-2 text-indigo-400" /> Recent Activity
+        <h3 className="text-lg font-bold text-[var(--text-main)] mb-3 flex items-center">
+          <Clock size={18} className="mr-2 text-[var(--col-primary-light)]" /> Recent Activity
         </h3>
         <div className="space-y-3">
           {history.length === 0 ? (
-            <div className="text-slate-500 text-sm text-center py-4 bg-slate-800/50 rounded-lg border border-slate-800">
+            <div className="text-[var(--text-muted)] text-sm text-center py-4 bg-[var(--bg-card)] rounded-lg border border-[var(--border-color)]">
               No workouts logged yet. Start today!
             </div>
           ) : (
             history.slice().reverse().slice(0, 3).map((log, idx) => (
-              <div key={idx} className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+              <div key={idx} className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)] flex justify-between items-center">
                 <div>
-                  <div className="text-white font-medium">Workout Completed</div>
-                  <div className="text-slate-400 text-xs">{new Date(log.date).toDateString()}</div>
+                  <div className="text-[var(--text-main)] font-medium">Workout Completed</div>
+                  <div className="text-[var(--text-muted)] text-xs">{new Date(log.date).toDateString()}</div>
                 </div>
-                <div className="text-indigo-400 font-bold text-sm">
+                <div className="text-[var(--col-primary-light)] font-bold text-sm">
                   {log.exercisesCompleted.length} Exercises
                 </div>
               </div>
@@ -187,16 +207,16 @@ const Dashboard: React.FC<{
 
       {/* Badges Preview */}
       <div>
-        <h3 className="text-lg font-bold text-white mb-3 flex items-center">
+        <h3 className="text-lg font-bold text-[var(--text-main)] mb-3 flex items-center">
           <Trophy size={18} className="mr-2 text-yellow-500" /> Recent Badges
         </h3>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {ALL_BADGES.map((badge) => {
             const isUnlocked = unlockedBadges.includes(badge.id);
             return (
-              <div key={badge.id} className={`flex-shrink-0 w-24 p-3 rounded-xl border ${isUnlocked ? 'bg-slate-800 border-yellow-500/50' : 'bg-slate-900 border-slate-800 opacity-50'} flex flex-col items-center text-center`}>
+              <div key={badge.id} className={`flex-shrink-0 w-24 p-3 rounded-xl border ${isUnlocked ? 'bg-[var(--bg-card)] border-yellow-500/50' : 'bg-[var(--bg-main)] border-[var(--border-color)] opacity-50'} flex flex-col items-center text-center`}>
                 <div className="text-2xl mb-2">{badge.icon}</div>
-                <div className={`text-xs font-bold ${isUnlocked ? 'text-white' : 'text-slate-500'}`}>{badge.name}</div>
+                <div className={`text-xs font-bold ${isUnlocked ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}`}>{badge.name}</div>
               </div>
             )
           })}
@@ -212,14 +232,16 @@ const Generator: React.FC<{
   onCancel: () => void;
 }> = ({ onGenerate, onCancel }) => {
   const [loading, setLoading] = useState(false);
-  const [target, setTarget] = useState<MuscleGroup>(MuscleGroup.FULL_BODY);
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.INTERMEDIATE);
   const [equipment, setEquipment] = useState<Equipment[]>([Equipment.DUMBBELLS, Equipment.BODYWEIGHT]);
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const plan = await generateWorkoutPlan(difficulty, equipment, target);
+      const muscles = Object.values(MuscleGroup);
+      const randomTarget = muscles[Math.floor(Math.random() * muscles.length)];
+      
+      const plan = await generateWorkoutPlan(difficulty, equipment, randomTarget);
       onGenerate(plan);
     } catch (e) {
       console.error(e);
@@ -241,33 +263,32 @@ const Generator: React.FC<{
         <Button variant="secondary" size="sm" onClick={onCancel} className="mr-3">
           Back
         </Button>
-        <h2 className="text-xl font-bold text-white">Create Workout</h2>
+        <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center">
+           <Zap className="text-yellow-400 mr-2" fill="currentColor" /> Daily Roulette
+        </h2>
+      </div>
+
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl text-center space-y-2">
+        <div className="inline-block p-4 rounded-full bg-[var(--bg-element)] border border-[var(--border-color)] mb-2">
+           <span className="text-4xl">🎲</span>
+        </div>
+        <h3 className="text-lg font-bold text-[var(--text-main)]">Mystery Challenge</h3>
+        <p className="text-sm text-[var(--text-muted)]">
+          One random exercise.<br/>
+          Random sets. Random reps. Random weight.<br/>
+          Can you handle the uncertainty?
+        </p>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-400 mb-2">Focus Area</label>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.values(MuscleGroup).map((m) => (
-              <button
-                key={m}
-                onClick={() => setTarget(m)}
-                className={`p-3 rounded-lg text-sm font-medium transition-all ${target === m ? 'bg-indigo-600 text-white ring-2 ring-indigo-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-400 mb-2">Difficulty</label>
+          <label className="block text-sm font-medium text-[var(--text-muted)] mb-2">Difficulty</label>
           <div className="flex gap-2">
             {Object.values(Difficulty).map((d) => (
               <button
                 key={d}
                 onClick={() => setDifficulty(d)}
-                className={`flex-1 p-2 rounded-lg text-sm font-medium ${difficulty === d ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                className={`flex-1 p-2 rounded-lg text-sm font-medium ${difficulty === d ? 'bg-[var(--col-primary)] text-white' : 'bg-[var(--bg-element)] text-[var(--text-muted)]'}`}
               >
                 {d}
               </button>
@@ -276,13 +297,13 @@ const Generator: React.FC<{
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-400 mb-2">Equipment Available</label>
+          <label className="block text-sm font-medium text-[var(--text-muted)] mb-2">Equipment Available</label>
           <div className="flex flex-wrap gap-2">
             {Object.values(Equipment).map((eq) => (
               <button
                 key={eq}
                 onClick={() => toggleEquipment(eq)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border ${equipment.includes(eq) ? 'bg-indigo-900/50 border-indigo-500 text-indigo-200' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border ${equipment.includes(eq) ? 'bg-[var(--col-primary)]/20 border-[var(--col-primary)] text-[var(--col-primary-light)]' : 'bg-[var(--bg-element)] border-[var(--border-color)] text-[var(--text-muted)]'}`}
               >
                 {eq}
               </button>
@@ -292,10 +313,10 @@ const Generator: React.FC<{
       </div>
 
       <div className="pt-4">
-        <Button onClick={handleGenerate} disabled={loading} loading={loading} className="w-full h-14 text-lg shadow-xl shadow-indigo-900/20">
-          {loading ? 'Generating Plan...' : 'Generate Workout'}
+        <Button onClick={handleGenerate} disabled={loading} loading={loading} className="w-full h-14 text-lg shadow-xl shadow-yellow-900/20 bg-gradient-to-r from-yellow-600 to-orange-600 border border-orange-500 hover:from-yellow-500 hover:to-orange-500">
+          {loading ? 'Rolling the Dice...' : 'Reveal My Fate'}
         </Button>
-        <p className="text-center text-xs text-slate-500 mt-3">Powered by Gemini AI 2.5 Flash</p>
+        <p className="text-center text-xs text-[var(--text-muted)] mt-3">Powered by Gemini AI 2.5 Flash</p>
       </div>
     </div>
   );
@@ -311,15 +332,17 @@ const ActiveWorkout: React.FC<{
   const [exerciseData, setExerciseData] = useState<{ [key: number]: { weight: number, reps: number, sets: number } }>({});
   const [timer, setTimer] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [copied, setCopied] = useState(false);
 
-  // Initialize defaults
   useEffect(() => {
     const defaults: any = {};
     plan.exercises.forEach((ex, idx) => {
-        // Simple heuristic to extract a number from "8-12" or "10"
-        const defaultReps = parseInt(ex.reps.split('-')[0]) || 10; 
+        const defaultReps = parseInt(ex.reps.split('-')[0]) || 10;
+        const weightMatch = ex.weight?.match(/\d+/);
+        const defaultWeight = weightMatch ? parseInt(weightMatch[0]) : 0;
+        
         defaults[idx] = {
-            weight: 0,
+            weight: defaultWeight,
             reps: defaultReps,
             sets: ex.sets
         }
@@ -368,6 +391,15 @@ const ActiveWorkout: React.FC<{
     onFinish(log);
   };
 
+  const handleCopy = () => {
+    const text = `${plan.title}\n${plan.description}\n\n` + 
+                 plan.exercises.map(e => `- ${e.name}: ${e.sets} sets x ${e.reps} @ ${e.weight} (${e.instructions})`).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -375,74 +407,85 @@ const ActiveWorkout: React.FC<{
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900">
+    <div className="flex flex-col h-screen bg-[var(--bg-main)]">
       {/* Top Bar */}
-      <div className="px-4 py-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-20">
+      <div className="px-4 py-4 bg-[var(--bg-card)] border-b border-[var(--border-color)] flex justify-between items-center sticky top-0 z-20">
         <div>
-          <h2 className="font-bold text-white text-sm">{plan.title}</h2>
-          <div className="text-indigo-400 font-mono text-xl font-bold">{formatTime(timer)}</div>
+          <h2 className="font-bold text-[var(--text-main)] text-sm max-w-[150px] truncate">{plan.title}</h2>
+          <div className="text-[var(--col-primary-light)] font-mono text-xl font-bold">{formatTime(timer)}</div>
         </div>
-        <Button variant="danger" size="sm" onClick={onCancel}>Exit</Button>
+        <div className="flex items-center space-x-2">
+            <button 
+                onClick={handleCopy} 
+                className="p-2 bg-[var(--bg-element)] rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                title="Copy Workout"
+            >
+                {copied ? <CheckCircle size={18} className="text-green-500" /> : <Copy size={18} />}
+            </button>
+            <Button variant="danger" size="sm" onClick={onCancel}>Exit</Button>
+        </div>
       </div>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-32">
+        {/* Description Card */}
+        <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)]">
+             <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase mb-1">Coach's Notes</h3>
+             <p className="text-sm text-[var(--text-main)] leading-relaxed select-text">{plan.description}</p>
+        </div>
+
         {plan.exercises.map((ex, idx) => (
-          <div key={idx} className={`rounded-xl border transition-all ${completedExercises.has(idx) ? 'bg-slate-900 border-indigo-900 opacity-60' : 'bg-slate-800 border-slate-700'}`}>
+          <div key={idx} className={`rounded-xl border transition-all ${completedExercises.has(idx) ? 'bg-[var(--bg-main)] border-[var(--col-primary)] opacity-60' : 'bg-[var(--bg-card)] border-[var(--border-color)]'}`}>
             
             {/* Exercise Header */}
             <div className="p-4">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-lg text-white">{ex.name}</h3>
-                <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">{ex.targetMuscle}</span>
+                <h3 className="font-bold text-lg text-[var(--text-main)] select-text">{ex.name}</h3>
+                <span className="text-xs bg-[var(--bg-element)] text-[var(--text-muted)] px-2 py-1 rounded">{ex.targetMuscle}</span>
               </div>
               
-              <div className="w-full h-32 bg-slate-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden group">
-                 <img 
-                    src={`https://picsum.photos/400/200?random=${idx}`} 
-                    alt={ex.name}
-                    className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-75 transition-opacity"
-                 />
-                 <Play className="text-white opacity-80" size={32} />
+              <div className="flex gap-2 mb-3">
+                  <span className="text-xs font-mono bg-[var(--col-primary)]/20 text-[var(--col-primary-light)] border border-[var(--col-primary)]/30 px-2 py-1 rounded">Target: {ex.sets} Sets</span>
+                  <span className="text-xs font-mono bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-1 rounded">Reps: {ex.reps}</span>
+                  <span className="text-xs font-mono bg-orange-900/50 text-orange-300 border border-orange-500/30 px-2 py-1 rounded">Weight: {ex.weight}</span>
               </div>
 
-              <p className="text-slate-400 text-sm mb-4">{ex.instructions}</p>
+              <p className="text-[var(--text-muted)] text-sm mb-4 select-text">{ex.instructions}</p>
 
               {/* Set Logger */}
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="flex justify-between text-xs text-slate-500 mb-2 uppercase font-bold tracking-wider">
-                  <span>Target: {ex.sets} x {ex.reps}</span>
-                  <span>Log Details</span>
+              <div className="bg-[var(--bg-element)]/30 rounded-lg p-3">
+                <div className="flex justify-between text-xs text-[var(--text-muted)] mb-2 uppercase font-bold tracking-wider">
+                  <span>Log Actuals</span>
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2 mb-3">
                     <div>
-                        <label className="text-[10px] text-slate-500 mb-1 block">SETS</label>
+                        <label className="text-[10px] text-[var(--text-muted)] mb-1 block">SETS</label>
                         <input 
                             type="number" 
                             value={exerciseData[idx]?.sets || ''}
                             placeholder={ex.sets.toString()}
-                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-2 text-white text-center font-mono focus:border-indigo-500 outline-none"
+                            className="w-full bg-[var(--bg-element)] border border-[var(--border-color)] rounded px-2 py-2 text-[var(--text-main)] text-center font-mono focus:border-[var(--col-primary)] outline-none"
                             onChange={(e) => handleInput(idx, 'sets', e.target.value)}
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] text-slate-500 mb-1 block">LBS/KG</label>
+                        <label className="text-[10px] text-[var(--text-muted)] mb-1 block">LBS/KG</label>
                         <input 
                             type="number" 
-                            placeholder="Weight" 
+                            placeholder={exerciseData[idx]?.weight?.toString()}
                             value={exerciseData[idx]?.weight || ''}
-                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-2 text-white text-center font-mono focus:border-indigo-500 outline-none"
+                            className="w-full bg-[var(--bg-element)] border border-[var(--border-color)] rounded px-2 py-2 text-[var(--text-main)] text-center font-mono focus:border-[var(--col-primary)] outline-none"
                             onChange={(e) => handleInput(idx, 'weight', e.target.value)}
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] text-slate-500 mb-1 block">REPS</label>
+                        <label className="text-[10px] text-[var(--text-muted)] mb-1 block">REPS</label>
                         <input 
                             type="number" 
-                            placeholder="Reps" 
+                            placeholder={ex.reps.replace(/[^0-9]/g, '')} 
                             value={exerciseData[idx]?.reps || ''}
-                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-2 text-white text-center font-mono focus:border-indigo-500 outline-none"
+                            className="w-full bg-[var(--bg-element)] border border-[var(--border-color)] rounded px-2 py-2 text-[var(--text-main)] text-center font-mono focus:border-[var(--col-primary)] outline-none"
                             onChange={(e) => handleInput(idx, 'reps', e.target.value)}
                         />
                     </div>
@@ -450,7 +493,7 @@ const ActiveWorkout: React.FC<{
 
                 <button 
                   onClick={() => toggleComplete(idx)}
-                  className={`w-full py-2 rounded-lg font-bold flex items-center justify-center transition-colors ${completedExercises.has(idx) ? 'bg-green-600/20 text-green-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                  className={`w-full py-2 rounded-lg font-bold flex items-center justify-center transition-colors ${completedExercises.has(idx) ? 'bg-green-600/20 text-green-500' : 'bg-[var(--col-primary)] text-white hover:bg-[var(--col-primary-hover)]'}`}
                 >
                   {completedExercises.has(idx) ? <><CheckCircle size={18} className="mr-2" /> Completed</> : 'Mark Complete'}
                 </button>
@@ -461,14 +504,14 @@ const ActiveWorkout: React.FC<{
       </div>
 
       {/* Footer Actions */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900 border-t border-slate-800 z-30">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--bg-main)] border-t border-[var(--border-color)] z-30">
         <Button 
             className="w-full text-lg h-12 shadow-lg shadow-green-900/20" 
             onClick={finishWorkout}
             variant={completedExercises.size > 0 ? 'primary' : 'secondary'}
             style={{ backgroundColor: completedExercises.size > 0 ? '#16a34a' : '' }}
         >
-            Finish Workout ({completedExercises.size}/{plan.exercises.length})
+            Finish Workout
         </Button>
       </div>
     </div>
@@ -483,6 +526,14 @@ export default function App() {
   const [history, setHistory] = useState<WorkoutLogEntry[]>([]);
   const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  // Apply Random Theme on Mount
+  useEffect(() => {
+    const theme = generateRandomTheme();
+    Object.entries(theme).forEach(([key, value]) => {
+      document.documentElement.style.setProperty(key, value);
+    });
+  }, []);
 
   // Install Prompt listener
   useEffect(() => {
@@ -542,17 +593,17 @@ export default function App() {
   };
 
   const Navigation = () => (
-    <nav className="fixed bottom-0 w-full bg-slate-800/95 backdrop-blur-md border-t border-slate-700 flex justify-around py-3 px-2 z-50 pb-safe">
-      <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center space-y-1 ${currentView === 'dashboard' ? 'text-indigo-400' : 'text-slate-500'}`}>
+    <nav className="fixed bottom-0 w-full bg-[var(--bg-card)]/95 backdrop-blur-md border-t border-[var(--border-color)] flex justify-around py-3 px-2 z-50 pb-safe">
+      <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center space-y-1 ${currentView === 'dashboard' ? 'text-[var(--col-primary-light)]' : 'text-[var(--text-muted)]'}`}>
         <LayoutDashboard size={24} />
         <span className="text-[10px]">Home</span>
       </button>
       
-      <button onClick={() => setCurrentView('generator')} className="relative -top-6 bg-indigo-600 rounded-full p-4 shadow-lg shadow-indigo-600/40 border-4 border-slate-900 text-white hover:bg-indigo-500 transition-colors">
+      <button onClick={() => setCurrentView('generator')} className="relative -top-6 bg-[var(--col-primary)] rounded-full p-4 shadow-lg shadow-[var(--col-primary)]/40 border-4 border-[var(--bg-main)] text-white hover:bg-[var(--col-primary-hover)] transition-colors">
         <Plus size={28} />
       </button>
 
-      <button onClick={() => setCurrentView('stats')} className={`flex flex-col items-center space-y-1 ${currentView === 'stats' ? 'text-indigo-400' : 'text-slate-500'}`}>
+      <button onClick={() => setCurrentView('stats')} className={`flex flex-col items-center space-y-1 ${currentView === 'stats' ? 'text-[var(--col-primary-light)]' : 'text-[var(--text-muted)]'}`}>
         <BarChart2 size={24} />
         <span className="text-[10px]">Stats</span>
       </button>
@@ -576,9 +627,9 @@ export default function App() {
   if (!profile) return null; // Should not happen if view != login
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] font-sans selection:bg-[var(--col-primary)]/30">
       
-      <main className="max-w-md mx-auto min-h-screen bg-slate-950 relative shadow-2xl overflow-hidden">
+      <main className="max-w-md mx-auto min-h-screen bg-[var(--bg-main)] relative shadow-2xl overflow-hidden">
         
         {currentView === 'dashboard' && (
           <Dashboard 
@@ -597,20 +648,20 @@ export default function App() {
 
         {currentView === 'stats' && (
           <div className="p-4 space-y-6 pb-24">
-            <h2 className="text-2xl font-bold text-white mb-4">Your Progress</h2>
+            <h2 className="text-2xl font-bold text-[var(--text-main)] mb-4">Your Progress</h2>
             
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-              <h3 className="text-sm font-bold text-slate-400 uppercase mb-4">Volume Over Time</h3>
+            <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)]">
+              <h3 className="text-sm font-bold text-[var(--text-muted)] uppercase mb-4">Volume Over Time</h3>
               <StatsChart history={history} />
             </div>
 
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-               <h3 className="text-sm font-bold text-slate-400 uppercase mb-4">Achievements</h3>
+            <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)]">
+               <h3 className="text-sm font-bold text-[var(--text-muted)] uppercase mb-4">Achievements</h3>
                <div className="grid grid-cols-4 gap-2">
                  {ALL_BADGES.map(b => {
                     const unlocked = getUnlockedBadges(profile.email).includes(b.id);
                     return (
-                        <div key={b.id} className={`aspect-square rounded-lg flex items-center justify-center text-2xl border ${unlocked ? 'bg-indigo-900/30 border-indigo-500/50' : 'bg-slate-900 border-slate-800 grayscale opacity-30'}`} title={b.description}>
+                        <div key={b.id} className={`aspect-square rounded-lg flex items-center justify-center text-2xl border ${unlocked ? 'bg-[var(--col-primary)]/30 border-[var(--col-primary)]/50' : 'bg-[var(--bg-main)] border-[var(--border-color)] grayscale opacity-30'}`} title={b.description}>
                             {b.icon}
                         </div>
                     )
@@ -618,18 +669,18 @@ export default function App() {
                </div>
             </div>
             
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-               <h3 className="text-sm font-bold text-slate-400 uppercase mb-4">Workout Log</h3>
+            <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)]">
+               <h3 className="text-sm font-bold text-[var(--text-muted)] uppercase mb-4">Workout Log</h3>
                <div className="space-y-4">
                   {history.slice().reverse().map((entry, i) => (
-                      <div key={i} className="flex justify-between items-center border-b border-slate-700 pb-2 last:border-0 last:pb-0">
+                      <div key={i} className="flex justify-between items-center border-b border-[var(--border-color)] pb-2 last:border-0 last:pb-0">
                           <div>
-                              <div className="text-white font-medium">{new Date(entry.date).toLocaleDateString()}</div>
-                              <div className="text-xs text-slate-500">{entry.durationMinutes} mins</div>
+                              <div className="text-[var(--text-main)] font-medium">{new Date(entry.date).toLocaleDateString()}</div>
+                              <div className="text-xs text-[var(--text-muted)]">{entry.durationMinutes} mins</div>
                           </div>
                           <div className="text-right">
-                              <div className="text-indigo-400 font-mono font-bold">{entry.totalVolume} lbs</div>
-                              <div className="text-xs text-slate-500">{entry.exercisesCompleted.length} Exercises</div>
+                              <div className="text-[var(--col-primary-light)] font-mono font-bold">{entry.totalVolume} lbs</div>
+                              <div className="text-xs text-[var(--text-muted)]">{entry.exercisesCompleted.length} Exercises</div>
                           </div>
                       </div>
                   ))}
